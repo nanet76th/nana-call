@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nana-call</title>
+<style>
+  body { margin: 0; padding: 16px; background: #111; color: #eee; font-family: sans-serif; }
+  main { max-width: 960px; margin: 0 auto; }
+  a { color: #8cf; }
+  input { box-sizing: border-box; width: 100%; padding: 8px; margin: 0 0 12px; font-size: 1em; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { padding: 8px 0; border-bottom: 1px solid #333; }
+  .meta { color: #aaa; font-size: 0.9em; }
+  .error { white-space: pre-wrap; color: #f88; }
+</style>
+</head>
+<body>
+<main>
+  <h1>nana-call</h1>
+  <input id="filter" type="search" placeholder="曲名・アーティストで絞り込み">
+  <ul id="songs"></ul>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  const PLAYER_URL = 'https://nanet76th.github.io/lrc-call-extension/player.html';
+  const LIBRARY = 'nana-call';
+
+  const list = document.getElementById('songs');
+  const filter = document.getElementById('filter');
+  let songs = [];
+
+  function playerUrl(song) {
+    return `${PLAYER_URL}?${new URLSearchParams({ lib: LIBRARY, song: song.id })}`;
+  }
+
+  function render() {
+    const q = filter.value.trim().toLowerCase();
+    const shown = songs.filter((s) => !q || `${s.title} ${s.artist} ${s.album}`.toLowerCase().includes(q));
+    list.replaceChildren(...shown.map((s) => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = playerUrl(s);
+      a.textContent = s.title;
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = [s.artist, s.album].filter(Boolean).join(' / ');
+      li.append(a, meta);
+      return li;
+    }));
+  }
+
+  fetch('index.json')
+    .then((res) => {
+      if (!res.ok) throw new Error(`index.json を読み込めませんでした (HTTP ${res.status})`);
+      return res.json();
+    })
+    .then((data) => {
+      songs = data.songs;
+      render();
+      filter.addEventListener('input', render);
+    })
+    .catch((err) => {
+      const p = document.createElement('p');
+      p.className = 'error';
+      p.textContent = err.message;
+      list.replaceWith(p);
+    });
+})();
+</script>
+</body>
+</html>
